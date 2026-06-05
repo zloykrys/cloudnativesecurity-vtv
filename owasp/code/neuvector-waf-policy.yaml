@@ -23,7 +23,7 @@ metadata:
   namespace: juice-shop
 spec:
   target:
-    policymode: Protect # FIXED: Absolute correct spelling (p-o-l-i-c-y-m-o-d-e)
+    policymode: Protect
     selector:
       name: nv.juice-shop.juice-shop
       criteria:
@@ -38,3 +38,21 @@ spec:
     settings:
       - name: sql-injection
         action: deny
+  
+  # CRITICAL FIX: Decouples Process enforcement from Network/WAF enforcement.
+  # Forces NeuVector to allow all processes to execute normally.
+  process_profile:
+    baseline: basic
+    mode: Discover
+
+  ingress:
+    - action: allow
+      ports: any
+      applications:
+        - HTTP
+      name: gitops-allow-ingress-controller
+      selector:
+        name: ingress
+  egress: []
+  process: []
+  file: []

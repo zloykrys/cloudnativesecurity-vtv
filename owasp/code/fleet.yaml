@@ -15,14 +15,12 @@ diff:
       name: nv.juice-shop.juice-shop
       namespace: juice-shop
       operations:
-        # Ignore the baseline paths that NeuVector automatically populates
+        # Ignore the dynamically auto-learned process array
         - op: remove
           path: /spec/process
-        - op: remove
-          path: /spec/process_profile
+        # Ignore network egress array
         - op: remove
           path: /spec/egress
-        - op: remove
-          path: /spec/ingress
+        # Ignore file profile array
         - op: remove
           path: /spec/file
