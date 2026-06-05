@@ -19,14 +19,12 @@ spec:
 apiVersion: neuvector.com/v1
 kind: NvSecurityRule
 metadata:
-  # THE FIX: A safe K8s name that NeuVector will NOT delete. Fleet tracks this perfectly.
-  name: juice-shop-waf-policy 
+  name: nv.juice-shop.juice-shop
   namespace: juice-shop
 spec:
   target:
     policymode: Protect
     selector:
-      # THE TARGET: Modifying NeuVector's system group directly
       name: nv.juice-shop.juice-shop
       criteria:
         - key: domain
@@ -40,21 +38,39 @@ spec:
     settings:
       - name: sql-injection
         action: deny
-  
-  # Decouples process crashes: Node.js boots normally
   process_profile:
     baseline: basic
     mode: Discover
-
-  # Authorizes the Ingress controller to talk to the app
   ingress:
+    # Uses official reserved groups to pass validation and allow ingress proxy traffic
     - action: allow
       ports: any
       applications:
         - HTTP
-      name: gitops-allow-ingress-controller
+      name: allow-internal-ingress
       selector:
-        name: ingress
-  egress: []
+        name: containers
+    - action: allow
+      ports: any
+      applications:
+        - HTTP
+      name: allow-external-ingress
+      selector:
+        name: external
+  egress:
+    - action: allow
+      ports: any
+      applications:
+        - any
+      name: allow-external-egress
+      selector:
+        name: external
+    - action: allow
+      ports: any
+      applications:
+        - any
+      name: allow-internal-egress
+      selector:
+        name: containers
   process: []
   file: []

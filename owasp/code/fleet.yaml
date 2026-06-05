@@ -12,7 +12,7 @@ diff:
   comparePatches:
     - apiVersion: neuvector.com/v1
       kind: NvSecurityRule
-      name: juice-shop-waf-policy # Matches our new safe metadata name!
+      name: nv.juice-shop.juice-shop
       namespace: juice-shop
       operations:
         - op: remove
