@@ -38,39 +38,48 @@ spec:
     settings:
       - name: sql-injection
         action: deny
+        
+  # Leave process enforcement decoupled so Node.js can boot cleanly
   process_profile:
     baseline: basic
     mode: Discover
+    
   ingress:
-    # Uses official reserved groups to pass validation and allow ingress proxy traffic
+    # 1. ALLOW THE HOST-NETWORKED INGRESS (Fixes the Implicit Deny log)
     - action: allow
       ports: any
       applications:
         - HTTP
-      name: allow-internal-ingress
+      name: allow-rke2-ingress
       selector:
-        name: containers
+        name: Workload:ingress
+        
+    # 2. ALLOW CLUSTER NODES (Fallback for hostNetwork routing)
     - action: allow
       ports: any
       applications:
         - HTTP
-      name: allow-external-ingress
+      name: allow-cluster-nodes
       selector:
-        name: external
-  egress:
+        name: nodes
+        
+    # 3. Standard container boundaries
     - action: allow
       ports: any
       applications:
-        - any
-      name: allow-external-egress
-      selector:
-        name: external
-    - action: allow
-      ports: any
-      applications:
-        - any
-      name: allow-internal-egress
+        - HTTP
+      name: allow-internal-containers
       selector:
         name: containers
+        
+    - action: allow
+      ports: any
+      applications:
+        - HTTP
+      name: allow-external-traffic
+      selector:
+        name: external
+        
+  egress: []
   process: []
   file: []
