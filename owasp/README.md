@@ -22,7 +22,7 @@ To automate this scenario without manual UI intervention, the state is declared 
 2. **Security Layer:** Deploys an `NvWafSecurityRule` defining the custom SQLi regular expression sensor and an `NvSecurityRule` setting the workload group to `Protect` mode with the sensor attached in a `deny` action state.
 
 ## Verification Steps
-1. Push the deployment and security configurations to your Git repo monitored by your GitOps engine (e.g., ArgoCD or Flux CD).
+1. Push the deployment and security configurations to your Git repo monitored by your GitOps engine (e.g., Fleet, ArgoCD or Flux CD).
 2. Attempt to log into the Juice Shop console using the SQL injection vector: `' or 1=1; --`.
 3. Verify that the login execution fails immediately.
 4. Open the NeuVector console or query the logs to view the blocked threat under **Notifications -> Security Events** along with its diagnostic packet capture file.
