@@ -15,7 +15,6 @@ diff:
       name: nv.juice-shop.juice-shop
       namespace: juice-shop
       operations:
-        # Ignore NeuVector's auto-learned dynamic runtime profiles
         - op: remove
           path: /spec/process
         - op: remove

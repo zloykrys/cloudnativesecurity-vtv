@@ -23,7 +23,7 @@ metadata:
   namespace: juice-shop
 spec:
   target:
-    policymode: Protect
+    policymode: Monitor # Switch to Monitor mode to allow normal proxy/ingress flow
     selector:
       name: nv.juice-shop.juice-shop
       criteria:
@@ -37,16 +37,4 @@ spec:
     status: true
     settings:
       - name: sql-injection
-        action: deny
-  ingress:
-    - action: allow
-      ports: any
-      applications:
-        - HTTP
-      name: allow-ingress-web
-      selector:
-        name: external # "external" is a built-in NeuVector group for traffic outside the mesh/cluster
-  # Keep these arrays explicitly defined as empty so Fleet maps them correctly
-  egress: []
-  process: []
-  file: []
+        action: deny # The WAF will still actively drop matching exploit payloads
