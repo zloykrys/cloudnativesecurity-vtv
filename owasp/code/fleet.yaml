@@ -7,3 +7,19 @@ labels:
 targets:
   - name: development-or-test-clusters
     clusterSelector: {}
+
+diff:
+  comparePatches:
+    - apiVersion: neuvector.com/v1
+      kind: NvSecurityRule
+      name: juice-shop-waf-policy # Matches our new safe metadata name!
+      namespace: juice-shop
+      operations:
+        - op: remove
+          path: /spec/process
+        - op: remove
+          path: /spec/egress
+        - op: remove
+          path: /spec/ingress
+        - op: remove
+          path: /spec/file
