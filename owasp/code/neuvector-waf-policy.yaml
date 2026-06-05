@@ -27,9 +27,6 @@ spec:
     selector:
       name: nv.juice-shop.juice-shop
       criteria:
-        - key: domain
-          op: "="
-          value: juice-shop
         - key: service
           op: "="
           value: juice-shop.juice-shop

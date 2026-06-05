@@ -25,11 +25,5 @@ diff:
       name: juice-shop-protection-policy
       namespace: juice-shop
       operations:
-        - op: ignore
-          path: /spec/target
-        - op: ignore
-          path: /spec/waf
-        - op: ignore
-          path: /spec/ingress
-        - op: ignore
-          path: /spec/egress
+        - op: remove
+          path: /spec
