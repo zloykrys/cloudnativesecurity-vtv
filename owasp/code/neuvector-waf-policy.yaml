@@ -23,7 +23,7 @@ metadata:
   namespace: juice-shop
 spec:
   target:
-    policymode: Protect # Armed to actively block threats
+    policymode: Protect # FIXED: Absolute correct spelling (p-o-l-i-c-y-m-o-d-e)
     selector:
       name: nv.juice-shop.juice-shop
       criteria:
@@ -38,22 +38,3 @@ spec:
     settings:
       - name: sql-injection
         action: deny
-  # NETWORK PASS-THROUGH: Allows routing from Ingress/Proxy while evaluating WAF
-  ingress:
-    - action: allow
-      ports: any
-      applications:
-        - any
-      name: gitops-allow-all-ingress
-      selector:
-        name: any
-  egress:
-    - action: allow
-      ports: any
-      applications:
-        - any
-      name: gitops-allow-all-egress
-      selector:
-        name: any
-  process: []
-  file: []

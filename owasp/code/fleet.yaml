@@ -15,10 +15,14 @@ diff:
       name: nv.juice-shop.juice-shop
       namespace: juice-shop
       operations:
-        # Prevents Fleet from tracking any modifications made by NeuVector
+        # Ignore the baseline paths that NeuVector automatically populates
         - op: remove
-          path: /spec
+          path: /spec/process
         - op: remove
-          path: /metadata/labels
+          path: /spec/process_profile
         - op: remove
-          path: /metadata/annotations
+          path: /spec/egress
+        - op: remove
+          path: /spec/ingress
+        - op: remove
+          path: /spec/file
