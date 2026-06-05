@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: juice-shop
+  namespace: juice-shop
+  annotations:
+    # Optional: Adds standard NGINX ingress configuration if you are using ingress-nginx
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  # If using K8s 1.18+, preferred way to specify the controller:
+  # ingressClassName: nginx 
+  rules:
+  - host: juice-shop.demo.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: juice-shop
+            port:
+              number: 8080

@@ -1,0 +1,45 @@
+apiVersion: neuvector.com/v1
+kind: NvWafSecurityRule
+metadata:
+  name: sql-injection
+  namespace: juice-shop
+spec:
+  sensor:
+    name: sql-injection
+    comment: "OWASP Top 10 Injection Mitigation custom regex sensor"
+    rules:
+      - name: auth-bypass
+        patterns:
+          - key: pattern
+            op: regex
+            value: '(?:\s|[^a-zA-Z0–9_])or(?:\s+|\()1=1(?: — |\s*\)|[^a-zA-Z0–9_])'
+            context: packet
+---
+apiVersion: neuvector.com/v1
+kind: NvSecurityRule
+metadata:
+  name: juice-shop-protection-policy
+  namespace: juice-shop
+spec:
+  target:
+    polymode: Protect
+    selector:
+      name: nv.juice-shop.juice-shop
+      criteria:
+        - key: domain
+          op: "="
+          value: juice-shop
+        - key: service
+          op: "="
+          value: juice-shop.juice-shop
+  waf:
+    status: true
+    settings:
+      - name: sql-injection
+        action: deny
+        status: true
+  # Explicitly declare structural parameters to suppress discovery drifts
+  ingress: []
+  egress: []
+  process: []
+  file: []
