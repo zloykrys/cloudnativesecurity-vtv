@@ -19,9 +19,3 @@ diff:
           path: /spec/process
         - op: remove
           path: /spec/process_profile
-        - op: remove
-          path: /spec/egress
-        - op: remove
-          path: /spec/ingress
-        - op: remove
-          path: /spec/file

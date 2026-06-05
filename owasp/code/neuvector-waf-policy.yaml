@@ -23,7 +23,7 @@ metadata:
   namespace: juice-shop
 spec:
   target:
-    policymode: Monitor # Switch to Monitor mode to allow normal proxy/ingress flow
+    policymode: Protect # Armed to actively block threats
     selector:
       name: nv.juice-shop.juice-shop
       criteria:
@@ -37,4 +37,23 @@ spec:
     status: true
     settings:
       - name: sql-injection
-        action: deny # The WAF will still actively drop matching exploit payloads
+        action: deny
+  # NETWORK PASS-THROUGH: Allows routing from Ingress/Proxy while evaluating WAF
+  ingress:
+    - action: allow
+      ports: any
+      applications:
+        - any
+      name: gitops-allow-all-ingress
+      selector:
+        name: any
+  egress:
+    - action: allow
+      ports: any
+      applications:
+        - any
+      name: gitops-allow-all-egress
+      selector:
+        name: any
+  process: []
+  file: []
