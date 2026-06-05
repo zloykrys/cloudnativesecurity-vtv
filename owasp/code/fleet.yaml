@@ -19,4 +19,17 @@ targets:
 # Built-in helm/kustomize/manifest options. 
 # Since we are using raw YAMLs, we can set forceSync to ensure Git remains the source of truth.
 diff:
-  comparePatches: []
+  comparePatches:
+    - apiVersion: neuvector.com/v1
+      kind: NvSecurityRule
+      name: juice-shop-protection-policy
+      namespace: juice-shop
+      operations:
+        - op: ignore
+          path: /spec/target
+        - op: ignore
+          path: /spec/waf
+        - op: ignore
+          path: /spec/ingress
+        - op: ignore
+          path: /spec/egress
