@@ -39,8 +39,3 @@ spec:
       - name: sql-injection
         action: deny
         status: true
-  # Explicitly declare structural parameters to suppress discovery drifts
-  ingress: []
-  egress: []
-  process: []
-  file: []
