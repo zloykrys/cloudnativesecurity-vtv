@@ -7,20 +7,3 @@ labels:
 targets:
   - name: development-or-test-clusters
     clusterSelector: {}
-
-diff:
-  comparePatches:
-    - apiVersion: neuvector.com/v1
-      kind: NvSecurityRule
-      name: nv.juice-shop.juice-shop
-      namespace: juice-shop
-      operations:
-        # Ignore the dynamically auto-learned process array
-        - op: remove
-          path: /spec/process
-        # Ignore network egress array
-        - op: remove
-          path: /spec/egress
-        # Ignore file profile array
-        - op: remove
-          path: /spec/file

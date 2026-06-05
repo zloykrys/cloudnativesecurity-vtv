@@ -19,13 +19,13 @@ spec:
 apiVersion: neuvector.com/v1
 kind: NvSecurityRule
 metadata:
-  name: nv.juice-shop.juice-shop
+  name: juice-shop-custom-waf # Clean, static custom name
   namespace: juice-shop
 spec:
   target:
-    policymode: Protect
+    policymode: Protect # Strictest mode wins: forces the pods into Protect
     selector:
-      name: nv.juice-shop.juice-shop
+      name: juice-shop-custom-waf
       criteria:
         - key: domain
           op: "="
@@ -39,20 +39,27 @@ spec:
       - name: sql-injection
         action: deny
   
-  # CRITICAL FIX: Decouples Process enforcement from Network/WAF enforcement.
-  # Forces NeuVector to allow all processes to execute normally.
+  # EXPLICIT DECOUPLING: Disables process enforcement so Node.js boots from scratch
   process_profile:
     baseline: basic
     mode: Discover
 
+  # NETWORK PASS-THROUGH: Prevents 502 Bad Gateway
   ingress:
     - action: allow
       ports: any
       applications:
-        - HTTP
-      name: gitops-allow-ingress-controller
+        - any
+      name: gitops-allow-ingress
       selector:
-        name: ingress
-  egress: []
+        name: any
+  egress:
+    - action: allow
+      ports: any
+      applications:
+        - any
+      name: gitops-allow-egress
+      selector:
+        name: any
   process: []
   file: []
