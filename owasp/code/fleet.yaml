@@ -1,0 +1,22 @@
+# The default namespace where all resources will be deployed
+defaultNamespace: juice-shop
+
+# Labels applied to the Fleet Bundle itself for tracking within Rancher
+labels:
+  app: owasp-sql-injection
+  team: security-operations
+
+# Define which clusters managed by Rancher should receive this deployment
+targets:
+  - name: all-clusters
+    # Leaving clusterSelector empty {} targets ALL clusters managed by this Fleet manager.
+    # To restrict it, use a label selector like the commented example below.
+    clusterSelector: {}
+    # clusterSelector:
+    #   matchLabels:
+    #     environment: testing
+
+# Built-in helm/kustomize/manifest options. 
+# Since we are using raw YAMLs, we can set forceSync to ensure Git remains the source of truth.
+diff:
+  comparePatches: []
