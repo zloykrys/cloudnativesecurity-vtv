@@ -19,32 +19,33 @@ spec:
 apiVersion: neuvector.com/v1
 kind: NvSecurityRule
 metadata:
-  name: juice-shop-custom-waf # Clean, static custom name
+  name: juice-shop-custom-waf
   namespace: juice-shop
 spec:
   target:
-    policymode: Protect # Strictest mode wins: forces the pods into Protect
+    policymode: Protect
     selector:
       name: juice-shop-custom-waf
       criteria:
+        # MAGIC FIX: Targeting the label stops NeuVector from absorbing and deleting this CRD
+        - key: label
+          op: "="
+          value: app=juice-shop
         - key: domain
           op: "="
           value: juice-shop
-        - key: service
-          op: "="
-          value: juice-shop.juice-shop
   waf:
     status: true
     settings:
       - name: sql-injection
         action: deny
   
-  # EXPLICIT DECOUPLING: Disables process enforcement so Node.js boots from scratch
+  # Process decoupled: Node.js boots normally
   process_profile:
     baseline: basic
     mode: Discover
 
-  # NETWORK PASS-THROUGH: Prevents 502 Bad Gateway
+  # Network Pass-through: Prevents 502 Bad Gateway
   ingress:
     - action: allow
       ports: any
