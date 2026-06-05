@@ -19,11 +19,11 @@ spec:
 apiVersion: neuvector.com/v1
 kind: NvSecurityRule
 metadata:
-  name: nv.juice-shop.juice-shop # MATCHES NEUVECTOR SYSTEM NAME
+  name: nv.juice-shop.juice-shop
   namespace: juice-shop
 spec:
   target:
-    polymode: Protect # PROMOTES WORKLOAD TO PROTECT MODE
+    policymode: Protect
     selector:
       name: nv.juice-shop.juice-shop
       criteria:
@@ -38,41 +38,3 @@ spec:
     settings:
       - name: sql-injection
         action: deny
-        status: true
-  # Keeps discovered baselines intact so the container can run normally in Protect Mode
-  process_profile:
-    baseline: basic
-    mode: Discover
-  process:
-    - action: allow
-      allow_update: false
-      name: MainThread
-      path: /nodejs/bin/node
-    - action: allow
-      allow_update: false
-      name: pause
-      path: /pause
-  egress:
-    - action: allow
-      applications:
-        - DNS
-      name: nv.rke2-coredns-rke2-coredns.kube-system-egress-0
-      ports: any
-      selector:
-        criteria:
-          - key: service
-            op: "="
-            value: rke2-coredns-rke2-coredns.kube-system
-          - key: domain
-            op: "="
-            value: kube-system
-        name: nv.rke2-coredns-rke2-coredns.kube-system
-    - action: allow
-      applications:
-        - SSL
-      name: external-egress-1
-      ports: any
-      selector:
-        name: external
-  ingress: []
-  file: []

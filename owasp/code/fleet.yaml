@@ -15,16 +15,14 @@ diff:
       name: nv.juice-shop.juice-shop
       namespace: juice-shop
       operations:
-        # Strips out live traffic metrics injected by NeuVector
+        # Ignore NeuVector's auto-learned dynamic runtime profiles
         - op: remove
-          path: /spec/target/selector/grp_band_width
+          path: /spec/process
         - op: remove
-          path: /spec/target/selector/grp_sess_cur
+          path: /spec/process_profile
         - op: remove
-          path: /spec/target/selector/grp_sess_rate
+          path: /spec/egress
         - op: remove
-          path: /spec/target/selector/mon_metric
+          path: /spec/ingress
         - op: remove
-          path: /spec/target/selector/comment
-        - op: remove
-          path: /spec/target/selector/original_name
+          path: /spec/file
