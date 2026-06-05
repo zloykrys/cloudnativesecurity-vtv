@@ -38,3 +38,15 @@ spec:
     settings:
       - name: sql-injection
         action: deny
+  ingress:
+    - action: allow
+      ports: any
+      applications:
+        - HTTP
+      name: allow-ingress-web
+      selector:
+        name: external # "external" is a built-in NeuVector group for traffic outside the mesh/cluster
+  # Keep these arrays explicitly defined as empty so Fleet maps them correctly
+  egress: []
+  process: []
+  file: []
