@@ -114,6 +114,13 @@ spec:
               -H "X-Auth-Token: ${TOKEN}" \
               -d "$REG_PAYLOAD")
             echo "API Response: $REG_RESP"
+
+            echo -e "\n6. Triggering Initial Registry Scan..."
+            # Programmatically trigger the scan for the newly created SUSE-AppCo registry
+            SCAN_RESP=$(curl -sk -X POST "${NV_API}/scan/registry/SUSE-AppCo/scan" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}")
+            echo "API Response: $SCAN_RESP"
               
             echo -e "\nConfiguration complete!"
         volumeMounts:
