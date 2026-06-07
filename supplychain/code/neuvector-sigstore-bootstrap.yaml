@@ -63,7 +63,8 @@ spec:
             fi
             
             echo -e "\n2. Creating SUSE AppCo Root of Trust..."
-            ROT_PAYLOAD='{"root_of_trust": {"name": "suse-appco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}}'
+            # FIXED: Restored flat JSON structure
+            ROT_PAYLOAD='{"name": "suse-appco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}'
             
             ROT_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust" \
               -H "Content-Type: application/json" \
@@ -71,12 +72,18 @@ spec:
               -d "$ROT_PAYLOAD")
             echo "API Response: $ROT_RESP"
             
+            # FIXED: NeuVector uses a distributed KV store. Adding a 3-second sleep 
+            # ensures the Root of Trust propagates across controllers before we attach the verifier to it!
+            echo -e "\nWaiting 3 seconds for KV store replication..."
+            sleep 3
+            
             echo -e "\n3. Registering the Keypair Verifier..."
+            # FIXED: Restored flat JSON structure
             VERIFIER_PAYLOAD=$(jq -n \
               --arg name "suse-appco-key" \
               --arg type "keypair" \
               --rawfile pub /keys/appco-pubkey.pem \
-              '{verifier: {name: $name, verifier_type: $type, public_key: $pub}}')
+              '{name: $name, verifier_type: $type, public_key: $pub}')
             
             VERIFIER_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust/suse-appco/verifier" \
               -H "Content-Type: application/json" \
@@ -85,7 +92,8 @@ spec:
             echo "API Response: $VERIFIER_RESP"
             
             echo -e "\n4. Activating Admission Control Webhook..."
-            ADM_PAYLOAD='{"state": {"enable": true, "mode": "protect", "adm_client_mode": "protect", "default_action": "allow"}}'
+            # FIXED: Stripped unsupported schema parameters
+            ADM_PAYLOAD='{"state": {"enable": true, "mode": "protect", "default_action": "allow"}}'
             
             ADM_RESP=$(curl -sk -X PATCH "${NV_API}/admission/state" \
               -H "Content-Type: application/json" \
