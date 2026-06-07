@@ -21,8 +21,11 @@ kind: Job
 metadata:
   name: configure-neuvector-sigstore
   namespace: mariadb-secure
+  # THE FIX FOR THE "MISSING" DRIFT LOOP
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
-  ttlSecondsAfterFinished: 60
   template:
     spec:
       
@@ -92,6 +95,18 @@ spec:
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d "$VERIFIER_PAYLOAD"
+              
+            echo -e "\n\n4. Activating Admission Control Webhook..."
+            curl -k -X POST "${NV_API}/admission/state" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}" \
+              -d '{
+                    "state": {
+                      "enable": true,
+                      "mode": "protect",
+                      "default_action": "allow"
+                    }
+                  }'
             
             echo -e "\n\nConfiguration complete!"
         volumeMounts:
