@@ -46,12 +46,13 @@ spec:
         args:
           - |
             echo "1. Authenticating to NeuVector API..."
-            
+            NV_API="https://neuvector-svc-controller.cattle-neuvector-system.svc.cluster.local:10443/v1"
+
             # Safely build the Auth payload
             AUTH_PAYLOAD=$(jq -n --arg user "$NV_USERNAME" --arg pass "$NV_PASSWORD" '{"password": {"username": $user, "password": $pass}}')
             
             # Execute Auth and catch the token
-            AUTH_RESP=$(curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/auth" -H "Content-Type: application/json" -d "$AUTH_PAYLOAD")
+            AUTH_RESP=$(curl -sk -X POST "${NV_API}/auth" -H "Content-Type: application/json" -d "$AUTH_PAYLOAD")
             TOKEN=$(echo $AUTH_RESP | jq -r '.token.token // empty')
             
             if [ -z "$TOKEN" ]; then
@@ -62,7 +63,7 @@ spec:
             
             echo "2. Creating SUSE AppCo Root of Trust..."
             # Let curl output the raw response so we can see if it succeeds or fails
-            curl -k -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust" \
+            curl -k -X POST "${NV_API}/scan/sigstore/root_of_trust" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d '{
@@ -81,7 +82,7 @@ spec:
               '{name: $name, verifier_type: $type, public_key: $pub}')
             
             # Execute and print the response
-            curl -k -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust/suse-appco/verifier" \
+            curl -k -X POST "${NV_API}/scan/sigstore/root_of_trust/suse-appco/verifier" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d "$VERIFIER_PAYLOAD"
