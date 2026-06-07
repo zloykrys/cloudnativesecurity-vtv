@@ -63,7 +63,6 @@ spec:
             fi
             
             echo -e "\n2. Creating SUSE AppCo Root of Trust..."
-            # FIXED: Wrapped payload in the "root_of_trust" object
             ROT_PAYLOAD='{"root_of_trust": {"name": "suse-appco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}}'
             
             ROT_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust" \
@@ -73,7 +72,6 @@ spec:
             echo "API Response: $ROT_RESP"
             
             echo -e "\n3. Registering the Keypair Verifier..."
-            # FIXED: Wrapped payload in the "verifier" object
             VERIFIER_PAYLOAD=$(jq -n \
               --arg name "suse-appco-key" \
               --arg type "keypair" \
@@ -85,6 +83,15 @@ spec:
               -H "X-Auth-Token: ${TOKEN}" \
               -d "$VERIFIER_PAYLOAD")
             echo "API Response: $VERIFIER_RESP"
+            
+            echo -e "\n4. Activating Admission Control Webhook..."
+            ADM_PAYLOAD='{"state": {"enable": true, "mode": "protect", "adm_client_mode": "protect", "default_action": "allow"}}'
+            
+            ADM_RESP=$(curl -sk -X PATCH "${NV_API}/admission/state" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}" \
+              -d "$ADM_PAYLOAD")
+            echo "API Response: $ADM_RESP"
               
             echo -e "\nConfiguration complete!"
         volumeMounts:
