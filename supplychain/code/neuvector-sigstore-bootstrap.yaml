@@ -45,21 +45,24 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            # rancher/shell comes pre-installed with curl and jq, so we skip the apk package installation
             echo "1. Authenticating to NeuVector API..."
             
-            # Safely build the JSON payload using jq to prevent complex password escaping issues
+            # Safely build the Auth payload
             AUTH_PAYLOAD=$(jq -n --arg user "$NV_USERNAME" --arg pass "$NV_PASSWORD" '{"password": {"username": $user, "password": $pass}}')
             
-            TOKEN=$(curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/auth" \
-              -H "Content-Type: application/json" \
-              -d "$AUTH_PAYLOAD" | jq -r .token.token)
+            # Execute Auth and catch the token
+            AUTH_RESP=$(curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/auth" -H "Content-Type: application/json" -d "$AUTH_PAYLOAD")
+            TOKEN=$(echo $AUTH_RESP | jq -r '.token.token // empty')
             
-            # Format the PEM file for JSON transmission
-            PUB_KEY=$(cat /keys/appco-pubkey.pem | sed ':a;N;$!ba;s/\n/\\n/g')
+            if [ -z "$TOKEN" ]; then
+              echo "ERROR: Authentication failed! API Response:"
+              echo "$AUTH_RESP"
+              exit 1
+            fi
             
             echo "2. Creating SUSE AppCo Root of Trust..."
-            curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust" \
+            # Let curl output the raw response so we can see if it succeeds or fails
+            curl -k -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d '{
@@ -68,17 +71,22 @@ spec:
                     "comment": "Programmatic GitOps SUSE AppCo Root of Trust"
                   }'
             
-            echo "3. Registering the Keypair Verifier..."
-            curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust/suse-appco/verifier" \
+            echo -e "\n\n3. Registering the Keypair Verifier..."
+            
+            # Let jq safely construct the complex JSON payload using the raw file contents
+            VERIFIER_PAYLOAD=$(jq -n \
+              --arg name "suse-appco-key" \
+              --arg type "keypair" \
+              --rawfile pub /keys/appco-pubkey.pem \
+              '{name: $name, verifier_type: $type, public_key: $pub}')
+            
+            # Execute and print the response
+            curl -k -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust/suse-appco/verifier" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
-              -d "{
-                    \"name\": \"suse-appco-key\",
-                    \"verifier_type\": \"keypair\",
-                    \"public_key\": \"${PUB_KEY}\"
-                  }"
+              -d "$VERIFIER_PAYLOAD"
             
-            echo "Configuration complete!"
+            echo -e "\n\nConfiguration complete!"
         volumeMounts:
         - name: pubkey-vol
           mountPath: /keys

@@ -8,9 +8,9 @@ spec:
       action: allow
       comment: "Allow explicitly signed SUSE AppCo MariaDB images"
       criteria:
-        # FIXED: Admission Control requires "is", "isNot", or "containsAny"
+        # FIXED: Admission Control requires list-based operators like "containsAny"
         - name: namespace
-          op: is 
+          op: containsAny 
           value: mariadb-secure
         - name: imageVerifiers
           op: containsAny
@@ -20,7 +20,7 @@ spec:
       action: deny
       comment: "Default Deny: Block all unverified images in this namespace"
       criteria:
-        # FIXED: Operator updated to "is"
+        # FIXED: Operator updated to "containsAny"
         - name: namespace
-          op: is
+          op: containsAny
           value: mariadb-secure
