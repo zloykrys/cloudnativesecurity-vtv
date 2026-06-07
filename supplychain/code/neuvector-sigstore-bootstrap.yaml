@@ -21,26 +21,20 @@ kind: Job
 metadata:
   name: configure-neuvector-sigstore
   namespace: mariadb-secure
-  # THE FIX FOR THE "MISSING" DRIFT LOOP
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   template:
     spec:
-      
       containers:
       - name: configure-api
-        
-        # Rancher's official utility shell image, can be any image that has curl and jq
-        # define as per your Rancher version - the below is for 2.13.3 (Edge 3.5)
         image: rancher/shell:v0.6.2
         imagePullPolicy: IfNotPresent
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         resources: {}
         env:
-          # Pull authentication credentials securely from the cluster secret
           - name: NV_USERNAME
             valueFrom:
               secretKeyRef:
@@ -57,10 +51,8 @@ spec:
             echo "1. Authenticating to NeuVector API..."
             NV_API="https://neuvector-svc-controller.cattle-neuvector-system.svc.cluster.local:10443/v1"
 
-            # Safely build the Auth payload
             AUTH_PAYLOAD=$(jq -n --arg user "$NV_USERNAME" --arg pass "$NV_PASSWORD" '{"password": {"username": $user, "password": $pass}}')
             
-            # Execute Auth and catch the token
             AUTH_RESP=$(curl -sk -X POST "${NV_API}/auth" -H "Content-Type: application/json" -d "$AUTH_PAYLOAD")
             TOKEN=$(echo $AUTH_RESP | jq -r '.token.token // empty')
             
@@ -70,47 +62,31 @@ spec:
               exit 1
             fi
             
-            echo "2. Creating SUSE AppCo Root of Trust..."
-            # Let curl output the raw response so we can see if it succeeds or fails
-            curl -k -X POST "${NV_API}/scan/sigstore/root_of_trust" \
+            echo -e "\n2. Creating SUSE AppCo Root of Trust..."
+            # FIXED: Wrapped payload in the "root_of_trust" object
+            ROT_PAYLOAD='{"root_of_trust": {"name": "suse-appco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}}'
+            
+            ROT_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
-              -d '{
-                    "name": "suse-appco",
-                    "rootless_keypairs_only": true,
-                    "comment": "Programmatic GitOps SUSE AppCo Root of Trust"
-                  }'
+              -d "$ROT_PAYLOAD")
+            echo "API Response: $ROT_RESP"
             
-            echo -e "\n\n3. Registering the Keypair Verifier..."
-            
-            # Let jq safely construct the complex JSON payload using the raw file contents
+            echo -e "\n3. Registering the Keypair Verifier..."
+            # FIXED: Wrapped payload in the "verifier" object
             VERIFIER_PAYLOAD=$(jq -n \
               --arg name "suse-appco-key" \
               --arg type "keypair" \
               --rawfile pub /keys/appco-pubkey.pem \
-              '{name: $name, verifier_type: $type, public_key: $pub}')
+              '{verifier: {name: $name, verifier_type: $type, public_key: $pub}}')
             
-            # Execute and print the response
-            curl -k -X POST "${NV_API}/scan/sigstore/root_of_trust/suse-appco/verifier" \
+            VERIFIER_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust/suse-appco/verifier" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
-              -d "$VERIFIER_PAYLOAD"
+              -d "$VERIFIER_PAYLOAD")
+            echo "API Response: $VERIFIER_RESP"
               
-            echo -e "\n\n4. Activating Admission Control Webhook..."
-            ADM_RESP=$(curl -sk -X PATCH "${NV_API}/admission/state" \
-              -H "Content-Type: application/json" \
-              -H "X-Auth-Token: ${TOKEN}" \
-              -d '{
-                    "state": {
-                      "enable": true,
-                      "mode": "protect",
-                      "adm_client_mode": "protect",
-                      "default_action": "allow"
-                    }
-                  }')
-            echo "API Response: $ADM_RESP"
-            
-            echo -e "\n\nConfiguration complete!"
+            echo -e "\nConfiguration complete!"
         volumeMounts:
         - name: pubkey-vol
           mountPath: /keys
