@@ -22,9 +22,10 @@ metadata:
   name: configure-neuvector-sigstore
   namespace: mariadb-secure
 spec:
+  ttlSecondsAfterFinished: 60
   template:
     spec:
-      ttlSecondsAfterFinished: 60
+      
       containers:
       - name: configure-api
         
