@@ -3,6 +3,10 @@ kind: ConfigMap
 metadata:
   name: suse-appco-public-key
   namespace: caddy-secure
+  annotations:
+    # FIXED: Tell Helm to create this BEFORE the bootstrap job runs!
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-1"
 data:
   appco-pubkey.pem: |
     -----BEGIN PUBLIC KEY-----
