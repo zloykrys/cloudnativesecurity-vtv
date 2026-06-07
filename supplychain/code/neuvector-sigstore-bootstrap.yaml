@@ -99,29 +99,28 @@ spec:
               -d "$ADM_PAYLOAD")
             echo "API Response: $ADM_RESP"
             
-            echo -e "\n5. Configuring SUSE AppCo Registry in NeuVector..."
+            echo -e "\n5. Configuring SUSE AppCo & Docker Hub Registries..."
+            # Configure AppCo
             REG_USER=$(jq -r '.auths["dp.apps.rancher.io"].username' /regcreds/.dockerconfigjson)
             REG_PASS=$(jq -r '.auths["dp.apps.rancher.io"].password' /regcreds/.dockerconfigjson)
             
-            # FIXED: Correct JSON schema key is 'registry_type'
-            REG_PAYLOAD=$(jq -n \
+            APPCO_PAYLOAD=$(jq -n \
               --arg user "$REG_USER" \
               --arg pass "$REG_PASS" \
               '{config: {name: "SUSE-AppCo", registry_type: "Docker Registry", registry: "https://dp.apps.rancher.io", filters: ["containers/caddy:2.11.4"], username: $user, password: $pass}}')
             
-            # FIXED: The endpoint is /scan/registry, not /registry
-            REG_RESP=$(curl -sk -X POST "${NV_API}/scan/registry" \
-              -H "Content-Type: application/json" \
-              -H "X-Auth-Token: ${TOKEN}" \
-              -d "$REG_PAYLOAD")
-            echo "API Response: $REG_RESP"
+            curl -sk -X POST "${NV_API}/scan/registry" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}" -d "$APPCO_PAYLOAD"
+            
+            # Configure Docker Hub (for our malicious test image)
+            DOCKER_PAYLOAD='{"config": {"name": "DockerHub-Test", "registry_type": "Docker Registry", "registry": "https://registry.hub.docker.com", "filters": ["library/caddy:latest"]}}'
+            
+            curl -sk -X POST "${NV_API}/scan/registry" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}" -d "$DOCKER_PAYLOAD"
 
-            echo -e "\n6. Triggering Initial Registry Scan..."
-            # Programmatically trigger the scan for the newly created SUSE-AppCo registry
-            SCAN_RESP=$(curl -sk -X POST "${NV_API}/scan/registry/SUSE-AppCo/scan" \
-              -H "Content-Type: application/json" \
-              -H "X-Auth-Token: ${TOKEN}")
-            echo "API Response: $SCAN_RESP"
+            echo -e "\n6. Triggering Initial Registry Scans..."
+            # Trigger AppCo Scan
+            curl -sk -X POST "${NV_API}/scan/registry/SUSE-AppCo/scan" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}"
+            # Trigger Docker Hub Scan
+            curl -sk -X POST "${NV_API}/scan/registry/DockerHub-Test/scan" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}"
             
             echo -e "\n7. Holding GitOps pipeline for 60 seconds..."
             echo "Waiting for NeuVector's background scanner to download and verify the AppCo signatures before we allow Fleet to deploy Caddy..."
