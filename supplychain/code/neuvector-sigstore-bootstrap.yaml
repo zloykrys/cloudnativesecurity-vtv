@@ -27,7 +27,7 @@ spec:
       containers:
       - name: configure-api
         # Rancher's official utility shell image, can be any image that has curl and jq
-        image: rancher/shell
+        image: rancher/shell:v0.6.2
         env:
           # Pull authentication credentials securely from the cluster secret
           - name: NV_USERNAME
