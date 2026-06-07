@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: malicious-unsigned-caddy
+  namespace: caddy-secure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: malicious-unsigned-caddy
+  template:
+    metadata:
+      labels:
+        app: malicious-unsigned-caddy
+    spec:
+      containers:
+        - name: caddy
+          # Pulling directly from public Docker Hub - this is NOT signed by SUSE AppCo!
+          image: docker.io/library/caddy:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
