@@ -24,9 +24,10 @@ metadata:
 spec:
   template:
     spec:
+      ttlSecondsAfterFinished: 60
       containers:
       - name: configure-api
-        ttlSecondsAfterFinished: 60
+        
         # Rancher's official utility shell image, can be any image that has curl and jq
         # define as per your Rancher version - the below is for 2.13.3 (Edge 3.5)
         image: rancher/shell:v0.6.2
