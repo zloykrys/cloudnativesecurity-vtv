@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: suse-appco-public-key
-  namespace: mariadb-secure
+  namespace: caddy-secure
 data:
   # The AppCo public key 
   appco-pubkey.pem: |
@@ -20,7 +20,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: configure-neuvector-sigstore
-  namespace: mariadb-secure
+  namespace: caddy-secure
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded

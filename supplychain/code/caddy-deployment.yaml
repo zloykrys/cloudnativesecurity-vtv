@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: suse-appco-caddy
+  namespace: caddy-secure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: suse-appco-caddy
+  template:
+    metadata:
+      labels:
+        app: suse-appco-caddy
+    spec:
+      # Explicitly reference the pre-created cluster secret to pull from dp.apps.rancher.io
+      imagePullSecrets:
+        - name: suse-appco-registry-secret
+      containers:
+        - name: caddy
+          # The official SUSE AppCo Caddy image
+          image: dp.apps.rancher.io/containers/caddy:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80

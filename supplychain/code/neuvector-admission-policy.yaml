@@ -6,12 +6,11 @@ spec:
   rules:
     - id: 10001
       action: allow
-      comment: "Allow explicitly signed SUSE AppCo MariaDB images"
+      comment: "Allow explicitly signed SUSE AppCo Caddy images"
       criteria:
-        # FIXED: Admission Control requires list-based operators like "containsAny"
         - name: namespace
           op: containsAny 
-          value: mariadb-secure
+          value: caddy-secure
         - name: imageVerifiers
           op: containsAny
           value: suse-appco/suse-appco-key
@@ -20,7 +19,6 @@ spec:
       action: deny
       comment: "Default Deny: Block all unverified images in this namespace"
       criteria:
-        # FIXED: Operator updated to "containsAny"
         - name: namespace
           op: containsAny
-          value: mariadb-secure
+          value: caddy-secure
