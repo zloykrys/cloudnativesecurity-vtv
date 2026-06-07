@@ -5,7 +5,7 @@ metadata:
 spec:
   rules:
     # THE FIX: Explicitly allow the Rancher Shell image so the job can run
-    - id: 10000
+    - id: 110002
       action: allow
       comment: "Allow Rancher utility shell for NeuVector API bootstrapping"
       criteria:
@@ -16,7 +16,7 @@ spec:
           op: containsAny
           value: rancher/shell
 
-    - id: 10001
+    - id: 110003
       action: allow
       comment: "Allow explicitly signed SUSE AppCo Caddy images"
       criteria:
@@ -27,7 +27,7 @@ spec:
           op: containsAny
           value: suse-appco/suse-appco-key
 
-    - id: 10002
+    - id: 110004
       action: deny
       comment: "Default Deny: Block all unverified images in this namespace"
       criteria:
