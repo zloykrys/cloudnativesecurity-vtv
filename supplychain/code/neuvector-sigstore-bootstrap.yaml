@@ -97,16 +97,18 @@ spec:
               -d "$VERIFIER_PAYLOAD"
               
             echo -e "\n\n4. Activating Admission Control Webhook..."
-            curl -k -X POST "${NV_API}/admission/state" \
+            ADM_RESP=$(curl -sk -X PATCH "${NV_API}/admission/state" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d '{
                     "state": {
                       "enable": true,
                       "mode": "protect",
+                      "adm_client_mode": "protect",
                       "default_action": "allow"
                     }
-                  }'
+                  }')
+            echo "API Response: $ADM_RESP"
             
             echo -e "\n\nConfiguration complete!"
         volumeMounts:
