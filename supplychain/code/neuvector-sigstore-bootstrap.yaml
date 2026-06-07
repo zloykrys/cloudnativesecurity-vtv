@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: suse-appco-public-key
+  namespace: mariadb-secure
+data:
+  # The AppCo public key 
+  appco-pubkey.pem: |
+    -----BEGIN PUBLIC KEY-----
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA02FtEt5gBywiyxbmkVsb
+    CujcBg5lur0kpEbfDk10gCcs9shVEqEO3ZsOXHursgoaDAWqdPtsYhsgczGeJz9w
+    Aw+r6BuRV8YOkE37A8s/7IOQUW0tlqtnt11OKhIiZ9+e5l3ed2H1ymKQO3dgreSy
+    rShqYdA3hrItswyp41ApF6zhjSPlR6lAmq3X4wMYLAPptmzfxigTnR4hxB5UNPhs
+    i2qA4vLrUM/i+NohECuLr1EAymvupH26HLEdM+eZnlQn+WbhIP5Grc4ba7XrBv7K
+    kywgTC7CxkiJZR0mUcUD2wTX/Je8Ewj6oPSalx09e2jtzvmU5Kr9XUyMF7Zsj5CA
+    IwIDAQAB
+    -----END PUBLIC KEY-----
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: configure-neuvector-sigstore
+  namespace: mariadb-secure
+spec:
+  template:
+    spec:
+      containers:
+      - name: configure-api
+        # Rancher's official utility shell image, can be any image that has curl and jq
+        image: rancher/shell
+        env:
+          # Pull authentication credentials securely from the cluster secret
+          - name: NV_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: neuvector-api-credentials
+                key: username
+          - name: NV_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: neuvector-api-credentials
+                key: password
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            # rancher/shell comes pre-installed with curl and jq, so we skip the apk package installation
+            echo "1. Authenticating to NeuVector API..."
+            
+            # Safely build the JSON payload using jq to prevent complex password escaping issues
+            AUTH_PAYLOAD=$(jq -n --arg user "$NV_USERNAME" --arg pass "$NV_PASSWORD" '{"password": {"username": $user, "password": $pass}}')
+            
+            TOKEN=$(curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/auth" \
+              -H "Content-Type: application/json" \
+              -d "$AUTH_PAYLOAD" | jq -r .token.token)
+            
+            # Format the PEM file for JSON transmission
+            PUB_KEY=$(cat /keys/appco-pubkey.pem | sed ':a;N;$!ba;s/\n/\\n/g')
+            
+            echo "2. Creating SUSE AppCo Root of Trust..."
+            curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}" \
+              -d '{
+                    "name": "suse-appco",
+                    "rootless_keypairs_only": true,
+                    "comment": "Programmatic GitOps SUSE AppCo Root of Trust"
+                  }'
+            
+            echo "3. Registering the Keypair Verifier..."
+            curl -sk -X POST "https://neuvector-svc-controller.neuvector.svc.cluster.local:10443/v1/scan/sigstore/root_of_trust/suse-appco/verifier" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}" \
+              -d "{
+                    \"name\": \"suse-appco-key\",
+                    \"verifier_type\": \"keypair\",
+                    \"public_key\": \"${PUB_KEY}\"
+                  }"
+            
+            echo "Configuration complete!"
+        volumeMounts:
+        - name: pubkey-vol
+          mountPath: /keys
+      restartPolicy: OnFailure
+      volumes:
+      - name: pubkey-vol
+        configMap:
+          name: suse-appco-public-key

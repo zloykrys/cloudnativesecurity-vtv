@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: suse-mariadb
+  namespace: mariadb-secure
+  labels:
+    app: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      imagePullSecrets:
+      - name: suse-appco-registry-secret
+      containers:
+      - name: mariadb
+        image: dp.apps.rancher.io/containers/mariadb:11.8.7-9.3
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          value: "secure-gitops-password"
+        ports:
+        - containerPort: 3306
+          name: mysql

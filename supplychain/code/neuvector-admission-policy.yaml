@@ -1,0 +1,24 @@
+apiVersion: neuvector.com/v1
+kind: NvAdmissionControlSecurityRule
+metadata:
+  name: enforce-appco-signature
+spec:
+  rules:
+    - id: 10001
+      action: allow
+      comment: "Allow explicitly signed SUSE AppCo MariaDB images"
+      criteria:
+        - name: namespace
+          op: "="
+          value: mariadb-secure
+        - name: imageVerifiers
+          op: containsAny
+          value: suse-appco/suse-appco-key
+
+    - id: 10002
+      action: deny
+      comment: "Default Deny: Block all unverified images in this namespace"
+      criteria:
+        - name: namespace
+          op: "="
+          value: mariadb-secure

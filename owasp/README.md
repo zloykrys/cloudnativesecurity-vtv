@@ -3,7 +3,7 @@
 ## Description
 A03:2021-Injection occupies third place in the OWASP Top 10 vulnerabilities list. This test case demonstrates how NeuVector programmatically detects, alerts, and neutralizes SQL Injection (SQLi) attacks inside a GitOps pipeline, keeping the core application secured and operational.
 
-Business value: keep application running when a known exploit exists but no patches available
+Business value: keep application running when a known exploit exists but no patches available (aka virtual patching)
 
 ## Success Criteria
 * **Automated Protection:** The SQL injection authentication bypass exploit is successfully blocked by the upstream NeuVector Deep Packet Inspection (DPI) web application firewall engine.
