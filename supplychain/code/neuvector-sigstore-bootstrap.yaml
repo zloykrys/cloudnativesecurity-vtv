@@ -21,7 +21,8 @@ metadata:
   name: configure-neuvector-sigstore
   namespace: caddy-secure
   annotations:
-    "helm.sh/hook": post-install,post-upgrade
+    # FIXED: Run BEFORE the Caddy deployment is applied
+    "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   template:
@@ -121,6 +122,10 @@ spec:
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}")
             echo "API Response: $SCAN_RESP"
+            
+            echo -e "\n7. Holding GitOps pipeline for 60 seconds..."
+            echo "Waiting for NeuVector's background scanner to download and verify the AppCo signatures before we allow Fleet to deploy Caddy..."
+            sleep 60
               
             echo -e "\nConfiguration complete!"
         volumeMounts:
