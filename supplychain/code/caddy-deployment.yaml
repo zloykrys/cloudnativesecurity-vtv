@@ -19,7 +19,7 @@ spec:
       containers:
         - name: caddy
           # The official SUSE AppCo Caddy image
-          image: dp.apps.rancher.io/containers/caddy:latest
+          image: dp.apps.rancher.io/containers/caddy:2.11.4
           imagePullPolicy: Always
           ports:
             - containerPort: 80
