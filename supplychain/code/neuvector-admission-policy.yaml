@@ -25,7 +25,8 @@ spec:
           value: caddy-secure
         - name: imageVerifiers
           op: containsAny
-          value: suse-appco/suse-appco-key
+          # FIXED: Removed hyphens from the Root of Trust / Verifier names
+          value: suseappco/suseappcokey
 
     - id: 110004
       action: deny

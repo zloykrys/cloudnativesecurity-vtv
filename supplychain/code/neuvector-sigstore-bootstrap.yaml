@@ -62,7 +62,8 @@ spec:
             fi
             
             echo -e "\n2. Creating SUSE AppCo Root of Trust..."
-            ROT_PAYLOAD='{"name": "suse-appco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}'
+            # FIXED: Removed hyphens from the name
+            ROT_PAYLOAD='{"name": "suseappco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}'
             
             ROT_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust" \
               -H "Content-Type: application/json" \
@@ -75,12 +76,13 @@ spec:
             
             echo -e "\n3. Registering the Keypair Verifier..."
             VERIFIER_PAYLOAD=$(jq -n \
-              --arg name "suse-appco-key" \
+              --arg name "suseappcokey" \
               --arg type "keypair" \
               --rawfile pub /keys/appco-pubkey.pem \
               '{name: $name, verifier_type: $type, public_key: $pub}')
             
-            VERIFIER_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust/suse-appco/verifier" \
+            # FIXED: Path updated to match the hyphen-less root of trust
+            VERIFIER_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust/suseappco/verifier" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d "$VERIFIER_PAYLOAD")
@@ -89,23 +91,25 @@ spec:
             echo -e "\n4. Activating Admission Control Webhook..."
             ADM_PAYLOAD='{"state": {"enable": true, "mode": "protect", "default_action": "allow"}}'
             
-            ADM_RESP=$(curl -sk -X PATCH "${NV_API}/admission/state" \
+            # FIXED: Added HTTP status code flag so we can see the '200' success!
+            ADM_RESP=$(curl -sk -w "\nHTTP Status: %{http_code}" -X PATCH "${NV_API}/admission/state" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d "$ADM_PAYLOAD")
             echo "API Response: $ADM_RESP"
             
             echo -e "\n5. Configuring SUSE AppCo Registry in NeuVector..."
-            # FIXED: Dynamically extract credentials from the mounted K8s secret
             REG_USER=$(jq -r '.auths["dp.apps.rancher.io"].username' /regcreds/.dockerconfigjson)
             REG_PASS=$(jq -r '.auths["dp.apps.rancher.io"].password' /regcreds/.dockerconfigjson)
             
+            # FIXED: Correct JSON schema key is 'registry_type'
             REG_PAYLOAD=$(jq -n \
               --arg user "$REG_USER" \
               --arg pass "$REG_PASS" \
-              '{config: {name: "SUSE-AppCo", type: "docker", registry: "https://dp.apps.rancher.io", filters: ["*"], username: $user, password: $pass}}')
+              '{config: {name: "SUSE-AppCo", registry_type: "Docker Registry", registry: "https://dp.apps.rancher.io", filters: ["*"], username: $user, password: $pass}}')
             
-            REG_RESP=$(curl -sk -X POST "${NV_API}/registry" \
+            # FIXED: The endpoint is /scan/registry, not /registry
+            REG_RESP=$(curl -sk -X POST "${NV_API}/scan/registry" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
               -d "$REG_PAYLOAD")
@@ -115,7 +119,6 @@ spec:
         volumeMounts:
         - name: pubkey-vol
           mountPath: /keys
-        # FIXED: Mount the Kubelet registry secret so the job can read it
         - name: regcred-vol
           mountPath: /regcreds
           readOnly: true
@@ -124,7 +127,6 @@ spec:
       - name: pubkey-vol
         configMap:
           name: suse-appco-public-key
-      # FIXED: Reference the pre-created AppCo secret
       - name: regcred-vol
         secret:
           secretName: suse-appco-registry-secret
