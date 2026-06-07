@@ -1,7 +1,7 @@
 apiVersion: neuvector.com/v1
 kind: NvAdmissionControlSecurityRule
 metadata:
-  name: enforce-appco-signature
+  name: local
 spec:
   rules:
     - id: 10001
