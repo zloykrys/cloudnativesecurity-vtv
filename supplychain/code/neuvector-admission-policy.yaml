@@ -4,6 +4,18 @@ metadata:
   name: local
 spec:
   rules:
+    # THE FIX: Explicitly allow the Rancher Shell image so the job can run
+    - id: 10000
+      action: allow
+      comment: "Allow Rancher utility shell for NeuVector API bootstrapping"
+      criteria:
+        - name: namespace
+          op: containsAny 
+          value: caddy-secure
+        - name: image
+          op: containsAny
+          value: rancher/shell*
+
     - id: 10001
       action: allow
       comment: "Allow explicitly signed SUSE AppCo Caddy images"
