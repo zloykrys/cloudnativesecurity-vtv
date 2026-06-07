@@ -21,7 +21,6 @@ metadata:
   name: configure-neuvector-sigstore
   namespace: caddy-secure
   annotations:
-    # FIXED: Run BEFORE the Caddy deployment is applied
     "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
@@ -62,45 +61,46 @@ spec:
               exit 1
             fi
             
-            echo -e "\n2. Creating SUSE AppCo Root of Trust..."
-            # FIXED: Removed hyphens from the name
-            ROT_PAYLOAD='{"name": "suseappco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}'
+            echo -e "\n2. Scrubbing previous state for idempotency..."
+            # FIXED: Explicitly delete existing objects so we never hit a collision error
+            curl -sk -X DELETE "${NV_API}/scan/sigstore/root_of_trust/suseappco" -H "X-Auth-Token: ${TOKEN}" > /dev/null
+            curl -sk -X DELETE "${NV_API}/scan/registry/SUSE-AppCo" -H "X-Auth-Token: ${TOKEN}" > /dev/null
+            curl -sk -X DELETE "${NV_API}/scan/registry/DockerHub-Test" -H "X-Auth-Token: ${TOKEN}" > /dev/null
             
-            ROT_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust" \
-              -H "Content-Type: application/json" \
-              -H "X-Auth-Token: ${TOKEN}" \
-              -d "$ROT_PAYLOAD")
-            echo "API Response: $ROT_RESP"
-            
-            echo -e "\nWaiting 3 seconds for KV store replication..."
+            echo "KV store wiped. Waiting 3 seconds for synchronization..."
             sleep 3
             
-            echo -e "\n3. Registering the Keypair Verifier..."
+            echo -e "\n3. Creating SUSE AppCo Root of Trust..."
+            ROT_PAYLOAD='{"name": "suseappco", "rootless_keypairs_only": true, "comment": "Programmatic GitOps SUSE AppCo Root of Trust"}'
+            
+            curl -sk -w "\nHTTP Status: %{http_code}\n" -X POST "${NV_API}/scan/sigstore/root_of_trust" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}" \
+              -d "$ROT_PAYLOAD"
+            
+            sleep 3
+            
+            echo -e "\n4. Registering the Keypair Verifier..."
             VERIFIER_PAYLOAD=$(jq -n \
               --arg name "suseappcokey" \
               --arg type "keypair" \
               --rawfile pub /keys/appco-pubkey.pem \
               '{name: $name, verifier_type: $type, public_key: $pub}')
             
-            # FIXED: Path updated to match the hyphen-less root of trust
-            VERIFIER_RESP=$(curl -sk -X POST "${NV_API}/scan/sigstore/root_of_trust/suseappco/verifier" \
+            curl -sk -w "\nHTTP Status: %{http_code}\n" -X POST "${NV_API}/scan/sigstore/root_of_trust/suseappco/verifier" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
-              -d "$VERIFIER_PAYLOAD")
-            echo "API Response: $VERIFIER_RESP"
+              -d "$VERIFIER_PAYLOAD"
             
-            echo -e "\n4. Activating Admission Control Webhook..."
+            echo -e "\n5. Activating Admission Control Webhook..."
             ADM_PAYLOAD='{"state": {"enable": true, "mode": "protect", "default_action": "allow"}}'
             
-            # FIXED: Added HTTP status code flag so we can see the '200' success!
-            ADM_RESP=$(curl -sk -w "\nHTTP Status: %{http_code}" -X PATCH "${NV_API}/admission/state" \
+            curl -sk -w "\nHTTP Status: %{http_code}\n" -X PATCH "${NV_API}/admission/state" \
               -H "Content-Type: application/json" \
               -H "X-Auth-Token: ${TOKEN}" \
-              -d "$ADM_PAYLOAD")
-            echo "API Response: $ADM_RESP"
+              -d "$ADM_PAYLOAD"
             
-            echo -e "\n5. Configuring SUSE AppCo & Docker Hub Registries..."
-            # Configure AppCo
+            echo -e "\n6. Configuring SUSE AppCo & Docker Hub Registries..."
             REG_USER=$(jq -r '.auths["dp.apps.rancher.io"].username' /regcreds/.dockerconfigjson)
             REG_PASS=$(jq -r '.auths["dp.apps.rancher.io"].password' /regcreds/.dockerconfigjson)
             
@@ -109,21 +109,35 @@ spec:
               --arg pass "$REG_PASS" \
               '{config: {name: "SUSE-AppCo", registry_type: "Docker Registry", registry: "https://dp.apps.rancher.io", filters: ["containers/caddy:2.11.4"], username: $user, password: $pass}}')
             
-            curl -sk -X POST "${NV_API}/scan/registry" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}" -d "$APPCO_PAYLOAD"
+            echo "-> Creating SUSE-AppCo Registry:"
+            curl -sk -w "\nHTTP Status: %{http_code}\n" -X POST "${NV_API}/scan/registry" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}" \
+              -d "$APPCO_PAYLOAD"
             
-            # Configure Docker Hub (for our malicious test image)
-            DOCKER_PAYLOAD='{"config": {"name": "DockerHub-Test", "registry_type": "Docker Registry", "registry": "https://registry.hub.docker.com", "filters": ["library/caddy:latest"]}}'
+            DOCKER_PAYLOAD='{"config": {"name": "DockerHub-Test", "registry_type": "Docker Registry", "registry": "https://registry-1.docker.io", "filters": ["library/caddy:latest"]}}'
             
-            curl -sk -X POST "${NV_API}/scan/registry" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}" -d "$DOCKER_PAYLOAD"
+            echo "-> Creating DockerHub-Test Registry:"
+            curl -sk -w "\nHTTP Status: %{http_code}\n" -X POST "${NV_API}/scan/registry" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}" \
+              -d "$DOCKER_PAYLOAD"
 
-            echo -e "\n6. Triggering Initial Registry Scans..."
-            # Trigger AppCo Scan
-            curl -sk -X POST "${NV_API}/scan/registry/SUSE-AppCo/scan" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}"
-            # Trigger Docker Hub Scan
-            curl -sk -X POST "${NV_API}/scan/registry/DockerHub-Test/scan" -H "Content-Type: application/json" -H "X-Auth-Token: ${TOKEN}"
+            sleep 3
+
+            echo -e "\n7. Triggering Initial Registry Scans..."
+            echo "-> Scanning SUSE-AppCo:"
+            curl -sk -w "\nHTTP Status: %{http_code}\n" -X POST "${NV_API}/scan/registry/SUSE-AppCo/scan" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}"
+              
+            echo "-> Scanning DockerHub-Test:"
+            curl -sk -w "\nHTTP Status: %{http_code}\n" -X POST "${NV_API}/scan/registry/DockerHub-Test/scan" \
+              -H "Content-Type: application/json" \
+              -H "X-Auth-Token: ${TOKEN}"
             
-            echo -e "\n7. Holding GitOps pipeline for 60 seconds..."
-            echo "Waiting for NeuVector's background scanner to download and verify the AppCo signatures before we allow Fleet to deploy Caddy..."
+            echo -e "\n8. Holding GitOps pipeline for 60 seconds..."
+            echo "Waiting for NeuVector's background scanner to download and verify signatures before deploying applications..."
             sleep 60
               
             echo -e "\nConfiguration complete!"
