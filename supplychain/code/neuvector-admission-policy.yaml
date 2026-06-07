@@ -14,7 +14,7 @@ spec:
           value: caddy-secure
         - name: image
           op: containsAny
-          value: rancher/shell*
+          value: rancher/shell
 
     - id: 10001
       action: allow
