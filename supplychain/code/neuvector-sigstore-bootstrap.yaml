@@ -106,7 +106,7 @@ spec:
             REG_PAYLOAD=$(jq -n \
               --arg user "$REG_USER" \
               --arg pass "$REG_PASS" \
-              '{config: {name: "SUSE-AppCo", registry_type: "Docker Registry", registry: "https://dp.apps.rancher.io", filters: ["*"], username: $user, password: $pass}}')
+              '{config: {name: "SUSE-AppCo", registry_type: "Docker Registry", registry: "https://dp.apps.rancher.io", filters: ["containers/caddy:2.11.4"], username: $user, password: $pass}}')
             
             # FIXED: The endpoint is /scan/registry, not /registry
             REG_RESP=$(curl -sk -X POST "${NV_API}/scan/registry" \
