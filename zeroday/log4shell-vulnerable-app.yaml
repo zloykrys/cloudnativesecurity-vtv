@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: log4shell-rogue-ns
+  name: log4shell-rogue-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: log4shell
+  name: log4shell
+  namespace: log4shell-rogue-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log4shell
+  template:
+    metadata:
+      labels:
+        app: log4shell
+    spec:
+      containers:
+      - image: ghcr.io/zloykrys/cloudnativesecurity-vtv/log4j-shell-poc:latest
+        imagePullPolicy: IfNotPresent
+        name: log4shell-vulnerable-app
+        ports:
+        - containerPort: 8080
+          name: log4shell
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: log4shell
+  namespace: log4shell-rogue-ns
+spec:
+  ports:
+    - name: log4shell
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: log4shell
+  type: ClusterIP
+--- 
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: log4shell
+  namespace: log4shell-rogue-ns
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: log4shell.demo.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: log4shell
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix
