@@ -5,7 +5,7 @@ This repository demonstrates a fully automated, defence-in-depth GitOps pipeline
 
 ---
 
-## Use Case 1: Artefact Scanning in Container Registry (Vulnerability Management)
+## Test Case 1: Artefact Scanning in Container Registry (Vulnerability Management)
 
 **Description:** Before a container is ever allowed to run, NeuVector must inspect its contents. This phase automatically connects to upstream container registries (SUSE AppCo and Docker Hub), downloads the image layers, and cross-references the packages against current CVE databases to identify known software vulnerabilities.
 
@@ -23,7 +23,7 @@ This repository demonstrates a fully automated, defence-in-depth GitOps pipeline
 
 ---
 
-## Use Case 2: Signature Verification (Chain of Custody)
+## Test Case 2: Signature Verification (Chain of Custody)
 
 **Description:** Scanning for vulnerabilities is not enough; we must also guarantee provenance. This phase utilises the Sigstore/Cosign framework to cryptographically verify that the container image was explicitly signed by a trusted entity (SUSE AppCo) and has not been tampered with since compilation.
 
@@ -40,7 +40,7 @@ This repository demonstrates a fully automated, defence-in-depth GitOps pipeline
 
 ---
 
-## Use Case 3: Admission Control Enforcement (Zero-Trust Gatekeeper)
+## Test Case 3: Admission Control Enforcement (Zero-Trust Gatekeeper)
 
 **Description:** This is the final enforcement mechanism. The Kubernetes Validating Webhook intercepts K8s API requests in real-time. It evaluates incoming Pods against a strict Default-Deny policy, allowing execution *only* if the image has passed the signature verification phase.
 

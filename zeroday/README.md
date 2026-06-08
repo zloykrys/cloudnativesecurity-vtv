@@ -1,4 +1,4 @@
-# Use Case 5: Zero-Day Attack Prevention (Runtime Security)
+# Test Case 5: Zero-Day Attack Prevention (Runtime Security)
 
 ## Overview
 Pre-deployment supply chain scanning is critical, but it cannot stop zero-day exploits—vulnerabilities that have no known CVE signature yet, such as the initial Log4Shell outbreak. 
