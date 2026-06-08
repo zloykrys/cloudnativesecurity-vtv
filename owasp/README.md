@@ -1,4 +1,4 @@
-# Test Case 2: OWASP Top 10 Attack Mitigation (SQL Injection)
+# Test Case 4: OWASP Top 10 Attack Mitigation (SQL Injection)
 
 ## Description
 A03:2021-Injection occupies third place in the OWASP Top 10 vulnerabilities list. This test case demonstrates how NeuVector programmatically detects, alerts, and neutralizes SQL Injection (SQLi) attacks inside a GitOps pipeline, keeping the core application secured and operational.
