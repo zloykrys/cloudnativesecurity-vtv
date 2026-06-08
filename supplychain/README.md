@@ -1,21 +1,65 @@
-# Test Case 1: Zero-Trust Image Signature Verification (SUSE AppCo)
+# Comprehensive Zero-Trust Supply Chain Security Pipeline
 
-## Description
-Software supply chain attacks are increasingly targeting container registries to inject malicious code into trusted infrastructure. This test case demonstrates how NeuVector programmatically detects, validates, and enforces a Zero-Trust architecture by verifying the Sigstore/Cosign cryptographic signatures of SUSE Application Collection (AppCo) images inside a strict GitOps pipeline. 
+## Overview
+This repository demonstrates a fully automated, defence-in-depth GitOps pipeline using NeuVector. By deploying this single architecture, we validate three critical pillars of container supply chain security: Vulnerability Management, Chain of Custody Verification, and Zero-Trust Admission Control.
 
-**Business value:** Guarantee the integrity and authenticity of software deployments before they are scheduled in the cluster, neutralizing supply chain poisoning attacks.
+---
 
-## Success Criteria
-* **Automated Protection:** The NeuVector Admission Control engine intercepts the Kubernetes deployment API request and strictly denies any unverified or tampered container images from running in the target namespace.
-* **Forensics & Diagnostics:** NeuVector generates a high-severity Admission Control block event and logs the cryptographic verification failure for compliance auditing.
+## Use Case 1: Artefact Scanning in Container Registry (Vulnerability Management)
 
-## Threat Vector Details
-* **Target Application:** SUSE Application Collection Caddy 
-* **Exploit Mechanism:** Supply Chain Poisoning / Unauthorized Image Deployment
-* **Exploit Payload:** An unsigned or maliciously modified container image bypassing CI/CD checks.
+**Description:** Before a container is ever allowed to run, NeuVector must inspect its contents. This phase automatically connects to upstream container registries (SUSE AppCo and Docker Hub), downloads the image layers, and cross-references the packages against current CVE databases to identify known software vulnerabilities.
+
+**Business Value:** Proactively shifts security left by identifying and cataloguing exploitable vulnerabilities at the registry level, reducing the cluster's attack surface and fulfilling compliance auditing requirements.
+
+**Threat Vector:** Deploying container images that contain known, exploitable software vulnerabilities (e.g., outdated OpenSSL libraries) that attackers can use to gain a foothold.
+
+**Success Criteria:** NeuVector successfully authenticates to the target registries, downloads the image manifests, parses the OS and application layers, and generates a comprehensive CVE vulnerability report.
+
+**Verification Steps:**
+1. Open the NeuVector console and navigate to **Assets -> Registries**.
+2. Select either the `SUSE-AppCo` or `DockerHub-Test` registry.
+3. Click into the **Images** tab and select the targeted Caddy image.
+4. Verify that a detailed vulnerability scan report is populated, displaying the Risk Score, CVE IDs, and impacted modules.
+
+---
+
+## Use Case 2: Signature Verification (Chain of Custody)
+
+**Description:** Scanning for vulnerabilities is not enough; we must also guarantee provenance. This phase utilises the Sigstore/Cosign framework to cryptographically verify that the container image was explicitly signed by a trusted entity (SUSE AppCo) and has not been tampered with since compilation.
+
+**Business Value:** Guarantees software integrity and provenance, ensuring that only trusted, unaltered code produced by approved build pipelines enters the infrastructure environment.
+
+**Threat Vector:** Supply chain poisoning, Man-in-the-Middle (MITM) attacks altering the image in the registry, or unauthorised image substitution by compromised third-party vendors.
+
+**Success Criteria:** NeuVector successfully locates the `.sig` manifest in the registry, validates it against the securely injected SUSE AppCo public key (`suseappcokey`), and caches the verified status.
+
+**Verification Steps:**
+1. Open the NeuVector console and navigate to **Assets -> Registries**.
+2. Select the `SUSE-AppCo` registry and view the scanned Caddy image.
+3. Look for the explicit "Sigstore" badge or signature validation status next to the image ID, proving the cryptographic signature was verified against the Root of Trust.
+
+---
+
+## Use Case 3: Admission Control Enforcement (Zero-Trust Gatekeeper)
+
+**Description:** This is the final enforcement mechanism. The Kubernetes Validating Webhook intercepts K8s API requests in real-time. It evaluates incoming Pods against a strict Default-Deny policy, allowing execution *only* if the image has passed the signature verification phase.
+
+**Business Value:** Acts as an automated, physical fail-safe that strictly enforces security policies, eliminating the risk of human error and preventing untrusted workloads from consuming compute resources.
+
+**Threat Vector:** Rogue deployments, insider threats, or compromised CI/CD pipelines attempting to bypass security checks and run unverified code in a secure namespace.
+
+**Success Criteria:** The Webhook successfully allows the deployment of the cryptographically signed SUSE AppCo image, while instantaneously and explicitly denying the deployment of the unsigned Docker Hub image.
+
+**Verification Steps:**
+1. Check the Kubernetes cluster deployment state: verify that the `suse-appco-caddy` pod successfully reaches a `Running` state.
+2. Check the cluster state for `malicious-unsigned-caddy`: verify that the deployment was blocked and the Pod failed to schedule.
+3. Open the NeuVector console and navigate to **Notifications -> Security Events**.
+4. Locate the high-severity **Admission Control Deny** log, verifying that the unsigned image was blocked specifically by the enforcement policy.
+
+---
 
 ## Pre-Requisite Cluster Instructions
-Because this repository is public, credentials and tokens must be decoupled from Git. The cluster operator must execute the following commands to provision the required target namespace and cryptographic/pull secrets **before** the GitOps engine synchronizes the repository:
+Because this repository is public, credentials and tokens must be decoupled from Git. The cluster operator must execute the following commands to provision the required target namespace and cryptographic/pull secrets **before** the GitOps engine synchronises the repository:
 
 ```bash
 # 1. Create the targeted isolated deployment namespace
@@ -36,15 +80,8 @@ kubectl create secret docker-registry suse-appco-registry-secret \
 ```
 
 ## GitOps Implementation Architecture
-To automate this scenario while avoiding K8s/GitOps race conditions, the state is declared using a strict execution sequence managed by Helm lifecycle hooks:
-1. **Security Layer (Hook Weight -5):** Deploys an `NvAdmissionControlSecurityRule` *before* anything else. This enforces a default-deny policy for the namespace, allowing only images explicitly verified by the `suseappco/suseappcokey` Root of Trust.
-2. **Bootstrapping Layer (Hook Weight 0):** A `pre-install` Kubernetes Job securely injects the SUSE AppCo public key into NeuVector's internal Sigstore engine, authenticates the scanner to the private registry, enables the Admission Webhook, and triggers an asynchronous signature scan. It intentionally holds the pipeline open for 60 seconds to allow the scan to complete.
-3. **Application Layer (Standard Install):** Deploys the signed AppCo Caddy workload alongside an explicitly unsigned public Caddy workload to prove the Zero-Trust enforcement mechanism against the now fully-armed webhook.
+To automate this scenario while avoiding Kubernetes/GitOps race conditions, the state is declared as a **Strict Helm Chart** utilising execution sequence hooks:
 
-## Verification Steps
-1. Execute the commands outlined in the **Pre-Requisite Cluster Instructions** section above.
-2. Push the deployment, bootstrap job, and security configurations to your Git repo monitored by your GitOps engine (e.g., Fleet).
-3. Open the NeuVector console, navigate to **Assets -> Registries**, and verify that the `SUSE-AppCo` registry was automatically configured and successfully scanned.
-4. Verify that the signed `suse-appco-caddy` deployment spins up successfully and the Pod reaches a `Running` state.
-5. Verify that the `malicious-unsigned-caddy` deployment is instantly rejected by Kubernetes, with the Pod entering an un-schedulable state.
-6. Open the NeuVector console to view the blocked threat under **Notifications -> Security Events**, proving the supply chain attack was neutralized.
+1. **Security Layer (Hook Weight -5):** Deploys an `NvAdmissionControlSecurityRule` *before* anything else. This enforces a default-deny policy for the namespace, allowing only images explicitly verified by the `suseappco/suseappcokey` Root of Trust.
+2. **Bootstrapping Layer (Hook Weight -1 & 0):** A `pre-install` ConfigMap and Kubernetes Job securely inject the SUSE AppCo public key into NeuVector's internal Sigstore engine, authenticate the scanner to the private registries, enable the Admission Webhook, and trigger asynchronous signature scans. The Job intentionally holds the deployment pipeline open for 60 seconds to allow the scans to complete.
+3. **Application Layer (Standard Install):** Once the pipeline hold is released, Helm deploys the signed AppCo Caddy workload alongside an explicitly unsigned public Caddy workload to prove the Zero-Trust enforcement mechanism against the fully-armed webhook.
