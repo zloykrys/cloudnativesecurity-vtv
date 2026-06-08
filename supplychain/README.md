@@ -85,3 +85,50 @@ To automate this scenario while avoiding Kubernetes/GitOps race conditions, the 
 1. **Security Layer (Hook Weight -5):** Deploys an `NvAdmissionControlSecurityRule` *before* anything else. This enforces a default-deny policy for the namespace, allowing only images explicitly verified by the `suseappco/suseappcokey` Root of Trust.
 2. **Bootstrapping Layer (Hook Weight -1 & 0):** A `pre-install` ConfigMap and Kubernetes Job securely inject the SUSE AppCo public key into NeuVector's internal Sigstore engine, authenticate the scanner to the private registries, enable the Admission Webhook, and trigger asynchronous signature scans. The Job intentionally holds the deployment pipeline open for 60 seconds to allow the scans to complete.
 3. **Application Layer (Standard Install):** Once the pipeline hold is released, Helm deploys the signed AppCo Caddy workload alongside an explicitly unsigned public Caddy workload to prove the Zero-Trust enforcement mechanism against the fully-armed webhook.
+
+---
+
+## Deploying via Rancher Fleet (App Bundle)
+
+To deploy this architecture into your cluster using Rancher's Continuous Delivery engine (Fleet), ensure your code is pushed to a remote Git repository structured as a Helm chart (with a `Chart.yaml` and a `templates/` folder). Clone this repo into your GitHub. Don't forget the pre-requisites steps above that define the secrets, it won't work otherwise.
+
+You can deploy the Fleet App Bundle either via the Rancher UI or declaratively using a Kubernetes manifest.
+
+### Method 1: Using the Rancher UI
+1. Log into the Rancher console and navigate to **Continuous Delivery -> Git Repos**.
+2. Click **Add Repository**.
+3. **Name:** `supplychain`
+4. **Repository URL:** `<URL to your Git repository>` (or this repo, https://github.com/zloykrys/cloudnativesecurity-vtv)
+5. **Branch:** `main` (or your target branch)
+6. **Paths:** If your chart is in a sub-folder, specify the path (e.g., `/supplychain` for this repo). If it is in the root, leave it as `/`.
+7. **Deploy To:** Select the target cluster(s) or workspace.
+8. Click **Create**. Fleet will automatically detect the `Chart.yaml`, bundle the app, and synchronise the resources according to the lifecycle hooks.
+
+### Method 2: Declarative `GitRepo` Resource
+If you manage Fleet configurations as code, apply the following `GitRepo` custom resource to your upstream Rancher management cluster:
+
+```yaml
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: supplychain
+  # Deploy in the appropriate workspace (e.g., fleet-local for the local cluster)
+  namespace: fleet-local 
+spec:
+  repo: [https://github.com/your-org/your-repo-name.git](https://github.com/your-org/your-repo-name.git)
+  branch: main
+  paths:
+    - / # Adjust this if your Chart.yaml lives in a subdirectory
+  targets:
+    - clusterSelector:
+        matchLabels:
+          # Target all clusters, or specify specific labels
+          env: secure-prod 
+```
+
+**Apply the manifest:**
+```bash
+kubectl apply -f gitrepo-bundle.yaml
+```
+
+Once synchronised, Fleet will apply the policies, execute the 60-second staging hold, and deploy the workloads—effectively locking down the `caddy-secure` namespace.
