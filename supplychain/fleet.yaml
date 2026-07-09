@@ -1,4 +1,4 @@
 # fleet.yaml
 # Override Fleet's default timeout to allow our 120-second security hold to finish
 helm:
-  timeoutSeconds: 600
+  timeoutSeconds: 300
