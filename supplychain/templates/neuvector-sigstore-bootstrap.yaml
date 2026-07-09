@@ -142,7 +142,7 @@ spec:
             
             echo -e "\n8. Holding GitOps pipeline for 60 seconds..."
             echo "Waiting for NeuVector's background scanner to download and verify signatures before deploying applications..."
-            sleep 60
+            sleep 120
               
             echo -e "\nConfiguration complete!"
         volumeMounts:
