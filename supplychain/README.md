@@ -51,10 +51,11 @@ This repository demonstrates a fully automated, defence-in-depth GitOps pipeline
 **Success Criteria:** The Webhook successfully allows the deployment of the cryptographically signed SUSE AppCo image, while instantaneously and explicitly denying the deployment of the unsigned Docker Hub image.
 
 **Verification Steps:**
-1. Check the Kubernetes cluster deployment state: verify that the `suse-appco-caddy` pod successfully reaches a `Running` state.
-2. Check the cluster state for `malicious-unsigned-caddy`: verify that the deployment was blocked and the Pod failed to schedule.
-3. Open the NeuVector console and navigate to **Notifications -> Security Events**.
-4. Locate the high-severity **Admission Control Deny** log, verifying that the unsigned image was blocked specifically by the enforcement policy.
+1. Check the Kubernetes cluster deployment state: verify that Fleet successfully deployed the `suse-appco-caddy` pod and it reached a `Running` state.
+2. **Simulate the Attack:** Act as a rogue actor bypassing the CI/CD pipeline by manually attempting to apply the unsigned workload directly to the K8s API:
+   ```bash
+   kubectl apply -f attack-payloads/caddy-unsigned-deployment.yaml
+   ```
 
 ---
 
