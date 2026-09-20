@@ -3,6 +3,8 @@ A set of simple-to-set up Proof of Technology cases that help to validate the bu
 
 ## Structure
 
+* **[Admission Control Best Practices](./kubernetes-admission-control-guide-v2.md)** A short guide how to get started with Admission Control using Kubewarden and NeuVector and typical use cases for it
+
 ### 📦 [Supply Chain Security](./supplychain)
 This module focuses on pre-deployment gates, ensuring that only trusted, verified, and scanned code is allowed to enter the Kubernetes environment.
 
