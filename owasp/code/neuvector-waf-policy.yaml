@@ -12,7 +12,7 @@ spec:
         patterns:
           - key: pattern
             op: regex
-            value: |
+            value: |-
               '(?:\s|[^a-zA-Z0-9_])OR(?:\s+|\()1=1(?:-|\s*\)|[^a-zA-Z0-9_])
             context: packet
 ---
